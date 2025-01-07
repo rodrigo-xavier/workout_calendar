@@ -1,0 +1,303 @@
+<html><head><base href="https://github.com" />
+<style>
+.calendar {
+    width: 400px;
+    margin: 50px auto;
+    font-family: Arial, sans-serif;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+}
+
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+}
+
+.calendar-day {
+    padding: 10px;
+    text-align: center;
+    cursor: pointer;
+    border: 1px solid #eee;
+    border-radius: 5px;
+    transition: background-color 0.3s;
+}
+
+.calendar-day:hover {
+    background-color: #f0f0f0;
+}
+
+.weekday-header {
+    font-weight: bold;
+    text-align: center;
+    padding: 10px;
+    background: #f5f5f5;
+    border-radius: 5px;
+}
+
+.fireworks {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 9999;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.2);
+    z-index: 1000;
+}
+
+.modal-content {
+    text-align: center;
+}
+
+.modal-buttons button {
+    margin: 10px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.completed {
+    background-color: #90EE90 !important;
+}
+
+.failed {
+    background-color: #FFB6C1 !important;
+}
+
+.nav-button {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.nav-button:hover {
+    background: #0056b3;
+}
+
+.user-info {
+    text-align: center;
+    margin-bottom: 20px;
+}
+</style>
+</head>
+<body>
+
+<div class="user-info">
+    <h2 id="user-welcome">Welcome!</h2>
+</div>
+
+<div class="calendar">
+    <div class="calendar-header">
+        <button class="nav-button" onclick="previousMonth()">&lt;</button>
+        <h2 id="current-month"></h2>
+        <button class="nav-button" onclick="nextMonth()">&gt;</button>
+    </div>
+    <div class="calendar-grid" id="calendar-grid">
+        <!-- Calendar will be generated here -->
+    </div>
+</div>
+
+<div class="modal" id="workout-modal">
+    <div class="modal-content">
+        <h3>Fez o seu treino hoje? 💪</h3>
+        <div class="modal-buttons">
+            <button onclick="handleWorkoutResponse(true)">Yes! 💪</button>
+            <button onclick="handleWorkoutResponse(false)">No... 😔</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.4.0/dist/confetti.browser.min.js"></script>
+<script>
+let selectedDate = null;
+let currentDisplayMonth = new Date().getMonth();
+let currentDisplayYear = new Date().getFullYear();
+let workoutHistory = {};
+let username = '';
+
+// Get username from URL
+function getUsernameFromURL() {
+    const urlParams = new URLSearchParams(window.location.search);
+    username = urlParams.get('user') || 'Anonymous';
+    document.getElementById('user-welcome').textContent = `Welcome, ${username}!`;
+    loadUserData();
+}
+
+// Load user data from localStorage
+function loadUserData() {
+    const savedData = localStorage.getItem(`workout-data-${username}`);
+    if (savedData) {
+        workoutHistory = JSON.parse(savedData);
+        generateCalendar(); // Refresh calendar with loaded data
+    }
+}
+
+// Save user data to localStorage
+function saveUserData() {
+    localStorage.setItem(`workout-data-${username}`, JSON.stringify(workoutHistory));
+}
+
+function generateCalendar() {
+    const grid = document.getElementById('calendar-grid');
+    const currentMonth = document.getElementById('current-month');
+    
+    grid.innerHTML = '';
+    
+    currentMonth.textContent = `${new Date(currentDisplayYear, currentDisplayMonth).toLocaleString('default', { month: 'long' })} ${currentDisplayYear}`;
+    
+    const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    weekdays.forEach(day => {
+        const dayHeader = document.createElement('div');
+        dayHeader.className = 'weekday-header';
+        dayHeader.textContent = day;
+        grid.appendChild(dayHeader);
+    });
+    
+    const firstDay = new Date(currentDisplayYear, currentDisplayMonth, 1).getDay();
+    const daysInMonth = new Date(currentDisplayYear, currentDisplayMonth + 1, 0).getDate();
+    
+    for (let i = 0; i < firstDay; i++) {
+        const emptyDay = document.createElement('div');
+        emptyDay.className = 'calendar-day';
+        grid.appendChild(emptyDay);
+    }
+    
+    for (let day = 1; day <= daysInMonth; day++) {
+        const dayElement = document.createElement('div');
+        dayElement.className = 'calendar-day';
+        dayElement.textContent = day;
+        
+        const dateKey = `${currentDisplayYear}-${currentDisplayMonth}-${day}`;
+        if (workoutHistory[dateKey] === true) {
+            dayElement.classList.add('completed');
+        } else if (workoutHistory[dateKey] === false) {
+            dayElement.classList.add('failed');
+        }
+        
+        dayElement.onclick = () => openWorkoutModal(day);
+        grid.appendChild(dayElement);
+    }
+}
+
+function previousMonth() {
+    if (currentDisplayMonth === 0) {
+        currentDisplayMonth = 11;
+        currentDisplayYear--;
+    } else {
+        currentDisplayMonth--;
+    }
+    generateCalendar();
+}
+
+function nextMonth() {
+    if (currentDisplayMonth === 11) {
+        currentDisplayMonth = 0;
+        currentDisplayYear++;
+    } else {
+        currentDisplayMonth++;
+    }
+    generateCalendar();
+}
+
+function openWorkoutModal(day) {
+    selectedDate = day;
+    const modal = document.getElementById('workout-modal');
+    modal.style.display = 'block';
+}
+
+function handleWorkoutResponse(completed) {
+    const modal = document.getElementById('workout-modal');
+    modal.style.display = 'none';
+    
+    const dateKey = `${currentDisplayYear}-${currentDisplayMonth}-${selectedDate}`;
+    workoutHistory[dateKey] = completed;
+    saveUserData(); // Save after updating
+    
+    const days = document.getElementsByClassName('calendar-day');
+    const selectedDay = Array.from(days).find(day => day.textContent == selectedDate);
+    
+    if (completed) {
+        selectedDay.classList.add('completed');
+        celebrateWorkout();
+    } else {
+        selectedDay.classList.add('failed');
+        mockUser();
+    }
+}
+
+function celebrateWorkout() {
+    confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 }
+    });
+}
+
+function mockUser() {
+    const mockMessages = [
+        "Sério? Mais um dia de sofá? 🤦‍♀️",
+        "A Netflix não vai te deixar em forma! 📺🙄",
+        "A academia tá perguntando de você... 😤",
+        "Cadê os ganhos de hoje? 💪😢",
+        "Os pesos estão sentindo sua falta! 🏋️‍♀️😭",
+        "Você acha que músculos crescem assistindo séries? 🤔🍿",
+        "Mais um treino perdido... assim fica difícil! 🫠",
+        "O personal tá chorando sua ausência. 🥹",
+        "Falta só hoje ou já virou férias permanentes? 🏖️😂",
+        "Enquanto você falta, os outros estão ficando mais fortes. 😏",
+        "Tá treinando o quê? Paciência no sofá? 🛋️🙃",
+        "Esse abdômen trincado não vai se fazer sozinho, viu? 🤷‍♀️",
+        "A preguiça tá vencendo a luta hoje? 🥱🏆",
+        "Você sabe que o treino não vai se fazer sozinho, né? 🙄",
+        "Se faltar mais um dia, vai ter que começar do zero! 🚨",
+        "Acho que sua matrícula na academia tá em risco... 😬",
+        "Cadê a disciplina que você prometeu no Ano Novo? 🗓️🤔",
+        "Tá esperando o milagre da proteína sem treino? 🥤🙃",
+        "Nem um agachamentozinho hoje? 😅",
+        "Enquanto você dorme, o shape dos sonhos vai embora... 😴💭",
+        "Desse jeito, só no próximo verão! ☀️😂",
+        "Se faltar amanhã, já vou chamar de ex-academia! 🫡",
+        "Os aparelhos estão empoeirando sem você... 🏋️‍♀️🫧",
+        "Você não tá cansada de ser sedentária por um dia? 😂",
+        "Vem treinar antes que vire lenda urbana! 👻🏋️‍♀️",
+    ];
+    
+    alert(mockMessages[Math.floor(Math.random() * mockMessages.length)]);
+}
+
+// Initialize calendar and user data when page loads
+window.onload = () => {
+    getUsernameFromURL();
+    generateCalendar();
+};
+</script>
+
+</body>
+</html>
