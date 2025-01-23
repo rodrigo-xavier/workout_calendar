@@ -1,4 +1,3 @@
-<html><head><base href="https://github.com" />
 <style>
 .calendar {
     position: fixed;
@@ -240,7 +239,7 @@ body {
     overflow-y: scroll;
 }
 </style>
-</head>
+
 <body>
 
 <div class="user-info">
@@ -288,6 +287,8 @@ let workoutChecklist = [];
 let dailyWorkoutData = {};
 let timerIntervals = {};
 let negativeChecklist = [];
+let workoutTimerStates = {};
+let negativeTimerStates = {};
 function formatTime(seconds) {
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor(seconds % 3600 / 60);
@@ -302,13 +303,22 @@ function startTimer(index) {
   const hours = parseInt(hoursSelect.value) || 0;
   const minutes = parseInt(minutesSelect.value) || 30;
   let timeLeft = hours * 3600 + minutes * 60;
+  if (workoutTimerStates[index] && workoutTimerStates[index].remainingTime) {
+    timeLeft = workoutTimerStates[index].remainingTime;
+  }
   timerDisplay.textContent = formatTime(timeLeft);
   timerIntervals[index] = setInterval(() => {
     timeLeft--;
     timerDisplay.textContent = formatTime(timeLeft);
+    workoutTimerStates[index] = {
+      remainingTime: timeLeft,
+      startTime: Date.now()
+    };
+    saveChecklist();
     if (timeLeft <= 0) {
       clearInterval(timerIntervals[index]);
       delete timerIntervals[index];
+      delete workoutTimerStates[index];
       workoutChecklist[index].checked = true;
       saveChecklist();
       updateWorkoutStatus();
@@ -318,6 +328,7 @@ function startTimer(index) {
   document.getElementById(`start-${index}`).disabled = true;
   document.getElementById(`pause-${index}`).disabled = false;
   document.getElementById(`reset-${index}`).disabled = false;
+  saveChecklist();
 }
 function pauseTimer(index) {
   if (timerIntervals[index]) {
@@ -325,6 +336,10 @@ function pauseTimer(index) {
     delete timerIntervals[index];
     document.getElementById(`start-${index}`).disabled = false;
     document.getElementById(`pause-${index}`).disabled = true;
+    localStorage.setItem(`timerState-${index}`, JSON.stringify({
+      paused: true,
+      lastIndex: index
+    }));
   }
 }
 function resetTimer(index) {
@@ -332,6 +347,7 @@ function resetTimer(index) {
     clearInterval(timerIntervals[index]);
     delete timerIntervals[index];
   }
+  localStorage.removeItem(`timer-${index}`);
   workoutChecklist[index].checked = true;
   saveChecklist();
   updateWorkoutStatus();
@@ -363,7 +379,14 @@ function renderChecklist() {
     const timerDisplay = document.createElement('div');
     timerDisplay.className = 'timer-display';
     timerDisplay.id = `timer-${index}`;
-    timerDisplay.textContent = '00:30:00';
+    if (item.remainingTime) {
+      const hours = Math.floor(item.remainingTime / 3600);
+      const minutes = Math.floor(item.remainingTime % 3600 / 60);
+      const seconds = item.remainingTime % 60;
+      timerDisplay.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    } else {
+      timerDisplay.textContent = '00:30:00';
+    }
     const selectContainer = document.createElement('div');
     selectContainer.className = 'timer-select-container';
     const hoursSelect = document.createElement('select');
@@ -403,13 +426,23 @@ function renderChecklist() {
     pauseButton.id = `pause-${index}`;
     pauseButton.textContent = '⏸';
     pauseButton.onclick = () => pauseTimer(index);
-    pauseButton.disabled = true;
+    if (item.running) {
+      startButton.disabled = true;
+      pauseButton.disabled = false;
+    } else {
+      startButton.disabled = false;
+      pauseButton.disabled = true;
+    }
     const resetButton = document.createElement('button');
     resetButton.className = 'timer-button';
     resetButton.id = `reset-${index}`;
     resetButton.textContent = '⟳';
     resetButton.onclick = () => resetTimer(index);
-    resetButton.disabled = true;
+    if (item.running) {
+      resetButton.disabled = false;
+    } else {
+      resetButton.disabled = true;
+    }
     timerControls.appendChild(startButton);
     timerControls.appendChild(pauseButton);
     timerControls.appendChild(resetButton);
@@ -475,6 +508,14 @@ function loadUserData() {
     }];
   }
   renderNegativeChecklist();
+  const savedWorkoutTimerStates = localStorage.getItem(`workout-timer-states-${username}`);
+  const savedNegativeTimerStates = localStorage.getItem(`negative-timer-states-${username}`);
+  if (savedWorkoutTimerStates) {
+    workoutTimerStates = JSON.parse(savedWorkoutTimerStates);
+  }
+  if (savedNegativeTimerStates) {
+    negativeTimerStates = JSON.parse(savedNegativeTimerStates);
+  }
 }
 function saveUserData() {
   localStorage.setItem(`workout-data-${username}`, JSON.stringify(workoutHistory));
@@ -510,7 +551,10 @@ function updateWorkoutStatus() {
   generateCalendar();
 }
 function saveChecklist() {
+  localStorage.setItem(`workout-checklist-${username}`, JSON.stringify(workoutChecklist));
   localStorage.setItem(`negative-checklist-${username}`, JSON.stringify(negativeChecklist));
+  localStorage.setItem(`workout-timer-states-${username}`, JSON.stringify(workoutTimerStates));
+  localStorage.setItem(`negative-timer-states-${username}`, JSON.stringify(negativeTimerStates));
 }
 function addChecklistItem() {
   workoutChecklist.push({
@@ -636,7 +680,14 @@ function renderNegativeChecklist() {
     const timerDisplay = document.createElement('div');
     timerDisplay.className = 'timer-display';
     timerDisplay.id = `timer-${index}`;
-    timerDisplay.textContent = '00:30:00';
+    if (item.timeRemaining !== undefined) {
+      const hours = Math.floor(item.timeRemaining / 3600);
+      const minutes = Math.floor(item.timeRemaining % 3600 / 60);
+      const seconds = item.timeRemaining % 60;
+      timerDisplay.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    } else {
+      timerDisplay.textContent = '00:30:00';
+    }
     const selectContainer = document.createElement('div');
     selectContainer.className = 'timer-select-container';
     const hoursSelect = document.createElement('select');
@@ -646,6 +697,7 @@ function renderNegativeChecklist() {
       const option = document.createElement('option');
       option.value = i;
       option.text = `${i}h`;
+      if (item.time !== undefined && item.time.hours === i) option.selected = true;
       hoursSelect.appendChild(option);
     }
     const separator = document.createElement('span');
@@ -658,7 +710,8 @@ function renderNegativeChecklist() {
       const option = document.createElement('option');
       option.value = i;
       option.text = `${i}m`;
-      if (i === 30) option.selected = true;
+      if (item.time !== undefined && item.time.minutes === i) option.selected = true;
+      if (i === 30 && item.time === undefined) option.selected = true;
       minutesSelect.appendChild(option);
     }
     selectContainer.appendChild(hoursSelect);
@@ -671,18 +724,25 @@ function renderNegativeChecklist() {
     startButton.id = `start-${index}`;
     startButton.textContent = '▶';
     startButton.onclick = () => startTimer(index);
+    if (item.timerRunning !== undefined && item.timerRunning) {
+      startButton.disabled = true;
+    }
     const pauseButton = document.createElement('button');
     pauseButton.className = 'timer-button';
     pauseButton.id = `pause-${index}`;
     pauseButton.textContent = '⏸';
     pauseButton.onclick = () => pauseTimer(index);
-    pauseButton.disabled = true;
+    if (item.timerRunning === undefined || !item.timerRunning) {
+      pauseButton.disabled = true;
+    }
     const resetButton = document.createElement('button');
     resetButton.className = 'timer-button';
     resetButton.id = `reset-${index}`;
     resetButton.textContent = '⟳';
     resetButton.onclick = () => resetTimer(index);
-    resetButton.disabled = true;
+    if (item.timeRemaining === undefined || item.timeRemaining === 0) {
+      resetButton.disabled = true;
+    }
     timerControls.appendChild(startButton);
     timerControls.appendChild(pauseButton);
     timerControls.appendChild(resetButton);
@@ -708,4 +768,3 @@ window.onload = () => {
 };</script>
 
 </body>
-</html>
