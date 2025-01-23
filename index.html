@@ -506,12 +506,9 @@ function getUsernameFromURL() {
   loadUserData();
 }
 function loadUserData() {
-  const savedCompleteHistory = localStorage.getItem(`complete-history-${username}`);
-  if (savedCompleteHistory) {
-    completeHistory = JSON.parse(savedCompleteHistory);
-  }
   const savedData = localStorage.getItem(`workout-data-${username}`);
   const savedChecklist = localStorage.getItem(`workout-checklist-${username}`);
+  const savedNegativeChecklist = localStorage.getItem(`negative-checklist-${username}`);
   if (savedData) {
     workoutHistory = JSON.parse(savedData);
     generateCalendar();
@@ -531,7 +528,6 @@ function loadUserData() {
     }];
   }
   renderChecklist();
-  const savedNegativeChecklist = localStorage.getItem(`negative-checklist-${username}`);
   if (savedNegativeChecklist) {
     negativeChecklist = JSON.parse(savedNegativeChecklist);
   } else {
@@ -619,8 +615,6 @@ function updateWorkoutStatus() {
 function saveChecklist() {
   localStorage.setItem(`workout-checklist-${username}`, JSON.stringify(workoutChecklist));
   localStorage.setItem(`negative-checklist-${username}`, JSON.stringify(negativeChecklist));
-  localStorage.setItem(`workout-timer-states-${username}`, JSON.stringify(workoutTimerStates));
-  localStorage.setItem(`negative-timer-states-${username}`, JSON.stringify(negativeTimerStates));
 }
 function addChecklistItem() {
   workoutChecklist.push({
