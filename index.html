@@ -256,6 +256,27 @@
   background: #0056b3;
 }
 
+.list-controls {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: 20px 0;
+}
+
+.list-controls button {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.list-controls button:hover {
+  background: #0056b3;
+}
+
 body {
     min-height: 150vh;
     overflow-y: scroll;
@@ -298,6 +319,12 @@ body {
             <button onclick="handleWorkoutResponse(false)">No... </button>
         </div>
     </div>
+</div>
+
+<div class="list-controls">
+  <button onclick="exportLists()">Export Lists</button>
+  <input type="file" id="importListsInput" accept=".json" style="display:none" onchange="importLists(event)">
+  <button onclick="document.getElementById(&apos;importListsInput&apos;).click()">Import Lists</button>
 </div>
 
 <div class="history-controls">
@@ -512,7 +539,6 @@ function loadUserData() {
   }
   const savedData = localStorage.getItem(`workout-data-${username}`);
   const savedChecklist = localStorage.getItem(`workout-checklist-${username}`);
-  const savedNegativeChecklist = localStorage.getItem(`negative-checklist-${username}`);
   if (savedData) {
     workoutHistory = JSON.parse(savedData);
   }
@@ -530,6 +556,8 @@ function loadUserData() {
       checked: false
     }];
   }
+  renderChecklist();
+  const savedNegativeChecklist = localStorage.getItem(`negative-checklist-${username}`);
   if (savedNegativeChecklist) {
     negativeChecklist = JSON.parse(savedNegativeChecklist);
   } else {
@@ -544,16 +572,17 @@ function loadUserData() {
       checked: false
     }];
   }
-  generateCalendar();
-  renderChecklist();
   renderNegativeChecklist();
+  generateCalendar();
 }
 function saveUserData() {
   const dateKey = `${currentDisplayYear}-${currentDisplayMonth}-${selectedDate}`;
-  completeHistory.workoutHistory[dateKey] = workoutHistory;
+  if (!completeHistory.workoutHistory) completeHistory.workoutHistory = {};
+  if (!completeHistory.workoutChecklist) completeHistory.workoutChecklist = {};
+  if (!completeHistory.negativeChecklist) completeHistory.negativeChecklist = {};
+  completeHistory.workoutHistory[dateKey] = workoutHistory[dateKey];
   completeHistory.workoutChecklist[dateKey] = workoutChecklist;
   completeHistory.negativeChecklist[dateKey] = negativeChecklist;
-  completeHistory.dailyWorkoutData[dateKey] = dailyWorkoutData;
   localStorage.setItem(`complete-history-${username}`, JSON.stringify(completeHistory));
   localStorage.setItem(`workout-data-${username}`, JSON.stringify(workoutHistory));
   localStorage.setItem(`daily-workout-data-${username}`, JSON.stringify(dailyWorkoutData));
@@ -561,35 +590,36 @@ function saveUserData() {
 function openWorkoutModal(day) {
   selectedDate = day;
   const dateKey = `${currentDisplayYear}-${currentDisplayMonth}-${selectedDate}`;
-  const historicalWorkoutChecklist = completeHistory.workoutChecklist[dateKey];
-  const historicalNegativeChecklist = completeHistory.negativeChecklist[dateKey];
-  if (historicalWorkoutChecklist) {
-    workoutChecklist = JSON.parse(JSON.stringify(historicalWorkoutChecklist));
+  if (!completeHistory.workoutChecklist[dateKey]) {
+    const previousDateKey = findPreviousDateWithHistory(dateKey);
+    if (previousDateKey) {
+      workoutChecklist = JSON.parse(JSON.stringify(completeHistory.workoutChecklist[previousDateKey]));
+      negativeChecklist = JSON.parse(JSON.stringify(completeHistory.negativeChecklist[previousDateKey]));
+    } else {
+      workoutChecklist = [{
+        text: "Warm up (10 mins)",
+        checked: false
+      }, {
+        text: "Main workout",
+        checked: false
+      }, {
+        text: "Cool down stretches",
+        checked: false
+      }];
+      negativeChecklist = [{
+        text: "Stayed up too late",
+        checked: false
+      }, {
+        text: "Skipped breakfast",
+        checked: false
+      }, {
+        text: "Unhealthy snacking",
+        checked: false
+      }];
+    }
   } else {
-    workoutChecklist = [{
-      text: "Warm up (10 mins)",
-      checked: false
-    }, {
-      text: "Main workout",
-      checked: false
-    }, {
-      text: "Cool down stretches",
-      checked: false
-    }];
-  }
-  if (historicalNegativeChecklist) {
-    negativeChecklist = JSON.parse(JSON.stringify(historicalNegativeChecklist));
-  } else {
-    negativeChecklist = [{
-      text: "Stayed up too late",
-      checked: false
-    }, {
-      text: "Skipped breakfast",
-      checked: false
-    }, {
-      text: "Unhealthy snacking",
-      checked: false
-    }];
+    workoutChecklist = JSON.parse(JSON.stringify(completeHistory.workoutChecklist[dateKey]));
+    negativeChecklist = JSON.parse(JSON.stringify(completeHistory.negativeChecklist[dateKey]));
   }
   saveChecklist();
   renderChecklist();
@@ -853,6 +883,70 @@ function importHistory(event) {
         alert('History imported successfully!');
       } catch (error) {
         alert('Error importing history: ' + error.message);
+      }
+    };
+    reader.readAsText(file);
+  }
+}
+function findPreviousDateWithHistory(currentDateKey) {
+  const [year, month, day] = currentDateKey.split('-').map(Number);
+  for (let searchDay = day - 1; searchDay > 0; searchDay--) {
+    const searchKey = `${year}-${month}-${searchDay}`;
+    if (completeHistory.workoutChecklist[searchKey]) {
+      return searchKey;
+    }
+  }
+  let searchMonth = month - 1;
+  let searchYear = year;
+  while (searchMonth >= 0 || searchYear > year - 2) {
+    if (searchMonth < 0) {
+      searchMonth = 11;
+      searchYear--;
+    }
+    const daysInMonth = new Date(searchYear, searchMonth + 1, 0).getDate();
+    for (let searchDay = daysInMonth; searchDay > 0; searchDay--) {
+      const searchKey = `${searchYear}-${searchMonth}-${searchDay}`;
+      if (completeHistory.workoutChecklist[searchKey]) {
+        return searchKey;
+      }
+    }
+    searchMonth--;
+  }
+  return null;
+}
+function exportLists() {
+  const listsToExport = {
+    workoutChecklist: workoutChecklist,
+    negativeChecklist: negativeChecklist
+  };
+  const listsBlob = new Blob([JSON.stringify(listsToExport, null, 2)], {
+    type: 'application/json'
+  });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(listsBlob);
+  a.download = `workout_lists_${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+}
+function importLists(event) {
+  const file = event.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      try {
+        const importedLists = JSON.parse(e.target.result);
+        if (importedLists.workoutChecklist) {
+          workoutChecklist = importedLists.workoutChecklist;
+          renderChecklist();
+          localStorage.setItem(`workout-checklist-${username}`, JSON.stringify(workoutChecklist));
+        }
+        if (importedLists.negativeChecklist) {
+          negativeChecklist = importedLists.negativeChecklist;
+          renderNegativeChecklist();
+          localStorage.setItem(`negative-checklist-${username}`, JSON.stringify(negativeChecklist));
+        }
+        alert('Lists imported successfully!');
+      } catch (error) {
+        alert('Error importing lists: ' + error.message);
       }
     };
     reader.readAsText(file);
