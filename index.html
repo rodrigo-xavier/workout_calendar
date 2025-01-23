@@ -1,8 +1,11 @@
 <html><head><base href="https://github.com" />
 <style>
 .calendar {
+    position: fixed;
     width: 400px;
-    margin: 50px auto;
+    left: 50%;
+    transform: translateX(-50%);
+    top: 50px;
     font-family: Arial, sans-serif;
     box-shadow: 0 0 10px rgba(0,0,0,0.1);
     background: white;
@@ -105,12 +108,142 @@
     text-align: center;
     margin-bottom: 20px;
 }
+
+.workout-checklist {
+    width: 800px;
+    left: 50%;
+    transform: translateX(-50%); 
+    margin-top: 500px;
+    margin-bottom: 50px;
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    position: relative;
+}
+
+.checklist-item {
+    display: flex;
+    align-items: center;
+    margin: 10px 0;
+    padding: 10px;
+    background: #f5f5f5;
+    border-radius: 5px;
+}
+
+.checklist-item input[type="checkbox"] {
+    margin-right: 10px;
+}
+
+.checklist-item input[type="text"] {
+    flex-grow: 1;
+    padding: 5px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+}
+
+.timer-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: 10px;
+}
+
+.timer-display {
+    font-family: monospace;
+    min-width: 100px;
+    padding: 5px;
+    background: #f0f0f0;
+    border-radius: 3px;
+    text-align: center;
+}
+
+.timer-button {
+    padding: 5px 10px;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    background: #007bff;
+    color: white;
+}
+
+.timer-button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+.timer-select-container {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: #f0f0f0;
+  padding: 5px;
+  border-radius: 3px;
+}
+
+.timer-separator {
+  font-weight: bold;
+  color: #666;
+}
+
+.add-item {
+    background: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 5px 10px;
+    margin-top: 10px;
+    cursor: pointer;
+    width: 50%;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.delete-item {
+    padding: 5px 10px;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    background: #ff4444;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: 10px;
+}
+
+.multiplier-input {
+    display: none;
+}
+
+.negative-checklist {
+  width: 800px;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 20px;
+  background: white;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  position: relative;
+  background: #fff3f3;
+  top: unset;
+}
+
+.negative-checklist .checklist-item {
+  background: #ffe6e6;
+}
+
+body {
+    min-height: 150vh;
+    overflow-y: scroll;
+}
 </style>
 </head>
 <body>
 
 <div class="user-info">
-    <h2 id="user-welcome">Welcome!</h2>
 </div>
 
 <div class="calendar">
@@ -120,184 +253,459 @@
         <button class="nav-button" onclick="nextMonth()">&gt;</button>
     </div>
     <div class="calendar-grid" id="calendar-grid">
-        <!-- Calendar will be generated here -->
     </div>
+</div>
+
+<div class="workout-checklist">
+    <h3>Positive Activities</h3>
+    <div id="checklist-items"></div>
+    <button class="add-item" onclick="addChecklistItem()">Add New Item</button>
+</div>
+
+<div class="negative-checklist workout-checklist">
+    <h3>Negative Activities</h3>
+    <div id="negative-checklist-items"></div>
+    <button class="add-item" onclick="addNegativeItem()">Add New Negative Item</button>
 </div>
 
 <div class="modal" id="workout-modal">
     <div class="modal-content">
-        <h3>Fez o seu treino hoje? 💪</h3>
+        <h3>Did you complete all workout items today? </h3>
         <div class="modal-buttons">
-            <button onclick="handleWorkoutResponse(true)">Yes! 💪</button>
-            <button onclick="handleWorkoutResponse(false)">No... 😔</button>
+            <button onclick="handleWorkoutResponse(true)">Yes! </button>
+            <button onclick="handleWorkoutResponse(false)">No... </button>
         </div>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.4.0/dist/confetti.browser.min.js"></script>
-<script>
-let selectedDate = null;
+<script>let selectedDate = null;
 let currentDisplayMonth = new Date().getMonth();
 let currentDisplayYear = new Date().getFullYear();
 let workoutHistory = {};
 let username = '';
-
-// Get username from URL
+let workoutChecklist = [];
+let dailyWorkoutData = {};
+let timerIntervals = {};
+let negativeChecklist = [];
+function formatTime(seconds) {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor(seconds % 3600 / 60);
+  const remainingSeconds = seconds % 60;
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
+}
+function startTimer(index) {
+  if (timerIntervals[index]) return;
+  const timerDisplay = document.getElementById(`timer-${index}`);
+  const hoursSelect = document.getElementById(`hours-${index}`);
+  const minutesSelect = document.getElementById(`minutes-${index}`);
+  const hours = parseInt(hoursSelect.value) || 0;
+  const minutes = parseInt(minutesSelect.value) || 30;
+  let timeLeft = hours * 3600 + minutes * 60;
+  timerDisplay.textContent = formatTime(timeLeft);
+  timerIntervals[index] = setInterval(() => {
+    timeLeft--;
+    timerDisplay.textContent = formatTime(timeLeft);
+    if (timeLeft <= 0) {
+      clearInterval(timerIntervals[index]);
+      delete timerIntervals[index];
+      workoutChecklist[index].checked = true;
+      saveChecklist();
+      updateWorkoutStatus();
+      renderChecklist();
+    }
+  }, 1000);
+  document.getElementById(`start-${index}`).disabled = true;
+  document.getElementById(`pause-${index}`).disabled = false;
+  document.getElementById(`reset-${index}`).disabled = false;
+}
+function pauseTimer(index) {
+  if (timerIntervals[index]) {
+    clearInterval(timerIntervals[index]);
+    delete timerIntervals[index];
+    document.getElementById(`start-${index}`).disabled = false;
+    document.getElementById(`pause-${index}`).disabled = true;
+  }
+}
+function resetTimer(index) {
+  if (timerIntervals[index]) {
+    clearInterval(timerIntervals[index]);
+    delete timerIntervals[index];
+  }
+  workoutChecklist[index].checked = true;
+  saveChecklist();
+  updateWorkoutStatus();
+  renderChecklist();
+}
+function renderChecklist() {
+  const container = document.getElementById('checklist-items');
+  container.innerHTML = '';
+  workoutChecklist.forEach((item, index) => {
+    const div = document.createElement('div');
+    div.className = 'checklist-item';
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = item.checked;
+    checkbox.onchange = () => {
+      workoutChecklist[index].checked = checkbox.checked;
+      saveChecklist();
+      updateWorkoutStatus();
+    };
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = item.text;
+    input.onchange = () => {
+      workoutChecklist[index].text = input.value;
+      saveChecklist();
+    };
+    const timerControls = document.createElement('div');
+    timerControls.className = 'timer-controls';
+    const timerDisplay = document.createElement('div');
+    timerDisplay.className = 'timer-display';
+    timerDisplay.id = `timer-${index}`;
+    timerDisplay.textContent = '00:30:00';
+    const selectContainer = document.createElement('div');
+    selectContainer.className = 'timer-select-container';
+    const hoursSelect = document.createElement('select');
+    hoursSelect.className = 'timer-select';
+    hoursSelect.id = `hours-${index}`;
+    for (let i = 0; i <= 12; i++) {
+      const option = document.createElement('option');
+      option.value = i;
+      option.text = `${i}h`;
+      hoursSelect.appendChild(option);
+    }
+    const separator = document.createElement('span');
+    separator.className = 'timer-separator';
+    separator.textContent = ':';
+    const minutesSelect = document.createElement('select');
+    minutesSelect.className = 'timer-select';
+    minutesSelect.id = `minutes-${index}`;
+    for (let i = 0; i <= 55; i += 5) {
+      const option = document.createElement('option');
+      option.value = i;
+      option.text = `${i}m`;
+      if (i === 30) option.selected = true;
+      minutesSelect.appendChild(option);
+    }
+    selectContainer.appendChild(hoursSelect);
+    selectContainer.appendChild(separator);
+    selectContainer.appendChild(minutesSelect);
+    timerControls.appendChild(timerDisplay);
+    timerControls.appendChild(selectContainer);
+    const startButton = document.createElement('button');
+    startButton.className = 'timer-button';
+    startButton.id = `start-${index}`;
+    startButton.textContent = '▶';
+    startButton.onclick = () => startTimer(index);
+    const pauseButton = document.createElement('button');
+    pauseButton.className = 'timer-button';
+    pauseButton.id = `pause-${index}`;
+    pauseButton.textContent = '⏸';
+    pauseButton.onclick = () => pauseTimer(index);
+    pauseButton.disabled = true;
+    const resetButton = document.createElement('button');
+    resetButton.className = 'timer-button';
+    resetButton.id = `reset-${index}`;
+    resetButton.textContent = '⟳';
+    resetButton.onclick = () => resetTimer(index);
+    resetButton.disabled = true;
+    timerControls.appendChild(startButton);
+    timerControls.appendChild(pauseButton);
+    timerControls.appendChild(resetButton);
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'delete-item';
+    deleteBtn.textContent = '×';
+    deleteBtn.onclick = () => {
+      if (timerIntervals[index]) {
+        clearInterval(timerIntervals[index]);
+        delete timerIntervals[index];
+      }
+      workoutChecklist.splice(index, 1);
+      saveChecklist();
+      renderChecklist();
+      updateWorkoutStatus();
+    };
+    div.appendChild(checkbox);
+    div.appendChild(input);
+    div.appendChild(timerControls);
+    div.appendChild(deleteBtn);
+    container.appendChild(div);
+  });
+}
 function getUsernameFromURL() {
-    const urlParams = new URLSearchParams(window.location.search);
-    username = urlParams.get('user') || 'Anonymous';
-    document.getElementById('user-welcome').textContent = `Welcome, ${username}!`;
-    loadUserData();
+  const urlParams = new URLSearchParams(window.location.search);
+  loadUserData();
 }
-
-// Load user data from localStorage
 function loadUserData() {
-    const savedData = localStorage.getItem(`workout-data-${username}`);
-    if (savedData) {
-        workoutHistory = JSON.parse(savedData);
-        generateCalendar(); // Refresh calendar with loaded data
-    }
+  const savedData = localStorage.getItem(`workout-data-${username}`);
+  const savedChecklist = localStorage.getItem(`workout-checklist-${username}`);
+  if (savedData) {
+    workoutHistory = JSON.parse(savedData);
+    generateCalendar();
+  }
+  if (savedChecklist) {
+    workoutChecklist = JSON.parse(savedChecklist);
+  } else {
+    workoutChecklist = [{
+      text: "Warm up (10 mins)",
+      checked: false
+    }, {
+      text: "Main workout",
+      checked: false
+    }, {
+      text: "Cool down stretches",
+      checked: false
+    }];
+  }
+  renderChecklist();
+  const savedNegativeChecklist = localStorage.getItem(`negative-checklist-${username}`);
+  if (savedNegativeChecklist) {
+    negativeChecklist = JSON.parse(savedNegativeChecklist);
+  } else {
+    negativeChecklist = [{
+      text: "Stayed up too late",
+      checked: false
+    }, {
+      text: "Skipped breakfast",
+      checked: false
+    }, {
+      text: "Unhealthy snacking",
+      checked: false
+    }];
+  }
+  renderNegativeChecklist();
 }
-
-// Save user data to localStorage
 function saveUserData() {
-    localStorage.setItem(`workout-data-${username}`, JSON.stringify(workoutHistory));
+  localStorage.setItem(`workout-data-${username}`, JSON.stringify(workoutHistory));
+  localStorage.setItem(`daily-workout-data-${username}`, JSON.stringify(dailyWorkoutData));
 }
-
-function generateCalendar() {
-    const grid = document.getElementById('calendar-grid');
-    const currentMonth = document.getElementById('current-month');
-    
-    grid.innerHTML = '';
-    
-    currentMonth.textContent = `${new Date(currentDisplayYear, currentDisplayMonth).toLocaleString('default', { month: 'long' })} ${currentDisplayYear}`;
-    
-    const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    weekdays.forEach(day => {
-        const dayHeader = document.createElement('div');
-        dayHeader.className = 'weekday-header';
-        dayHeader.textContent = day;
-        grid.appendChild(dayHeader);
-    });
-    
-    const firstDay = new Date(currentDisplayYear, currentDisplayMonth, 1).getDay();
-    const daysInMonth = new Date(currentDisplayYear, currentDisplayMonth + 1, 0).getDate();
-    
-    for (let i = 0; i < firstDay; i++) {
-        const emptyDay = document.createElement('div');
-        emptyDay.className = 'calendar-day';
-        grid.appendChild(emptyDay);
-    }
-    
-    for (let day = 1; day <= daysInMonth; day++) {
-        const dayElement = document.createElement('div');
-        dayElement.className = 'calendar-day';
-        dayElement.textContent = day;
-        
-        const dateKey = `${currentDisplayYear}-${currentDisplayMonth}-${day}`;
-        if (workoutHistory[dateKey] === true) {
-            dayElement.classList.add('completed');
-        } else if (workoutHistory[dateKey] === false) {
-            dayElement.classList.add('failed');
-        }
-        
-        dayElement.onclick = () => openWorkoutModal(day);
-        grid.appendChild(dayElement);
-    }
-}
-
-function previousMonth() {
-    if (currentDisplayMonth === 0) {
-        currentDisplayMonth = 11;
-        currentDisplayYear--;
-    } else {
-        currentDisplayMonth--;
-    }
-    generateCalendar();
-}
-
-function nextMonth() {
-    if (currentDisplayMonth === 11) {
-        currentDisplayMonth = 0;
-        currentDisplayYear++;
-    } else {
-        currentDisplayMonth++;
-    }
-    generateCalendar();
-}
-
 function openWorkoutModal(day) {
-    selectedDate = day;
-    const modal = document.getElementById('workout-modal');
-    modal.style.display = 'block';
+  selectedDate = day;
+  const dateKey = `${currentDisplayYear}-${currentDisplayMonth}-${selectedDate}`;
+  workoutChecklist.forEach(item => item.checked = false);
+  negativeChecklist.forEach(item => item.checked = false);
+  saveChecklist();
+  renderChecklist();
+  workoutHistory[dateKey] = false;
+  saveUserData();
+  generateCalendar();
 }
-
-function handleWorkoutResponse(completed) {
-    const modal = document.getElementById('workout-modal');
-    modal.style.display = 'none';
-    
-    const dateKey = `${currentDisplayYear}-${currentDisplayMonth}-${selectedDate}`;
-    workoutHistory[dateKey] = completed;
-    saveUserData(); // Save after updating
-    
-    const days = document.getElementsByClassName('calendar-day');
-    const selectedDay = Array.from(days).find(day => day.textContent == selectedDate);
-    
-    if (completed) {
-        selectedDay.classList.add('completed');
-        celebrateWorkout();
-    } else {
-        selectedDay.classList.add('failed');
-        mockUser();
+function updateWorkoutStatus() {
+  if (!selectedDate) return;
+  const dateKey = `${currentDisplayYear}-${currentDisplayMonth}-${selectedDate}`;
+  const completedItems = workoutChecklist.filter(item => item.checked).length;
+  const totalItems = workoutChecklist.length;
+  const completionRate = totalItems > 0 ? completedItems / totalItems : 0;
+  const completedNegatives = negativeChecklist.filter(item => item.checked).length;
+  const totalNegatives = negativeChecklist.length;
+  const negativeRate = totalNegatives > 0 ? completedNegatives / totalNegatives : 0;
+  if (completionRate >= 0.8 && negativeRate < 0.2) {
+    workoutHistory[dateKey] = true;
+    celebrateWorkout();
+  } else {
+    workoutHistory[dateKey] = false;
+  }
+  saveUserData();
+  generateCalendar();
+}
+function saveChecklist() {
+  localStorage.setItem(`negative-checklist-${username}`, JSON.stringify(negativeChecklist));
+}
+function addChecklistItem() {
+  workoutChecklist.push({
+    text: "New item",
+    checked: false
+  });
+  saveChecklist();
+  renderChecklist();
+}
+function generateCalendar() {
+  const grid = document.getElementById('calendar-grid');
+  const currentMonth = document.getElementById('current-month');
+  grid.innerHTML = '';
+  currentMonth.textContent = `${new Date(currentDisplayYear, currentDisplayMonth).toLocaleString('default', {
+    month: 'long'
+  })} ${currentDisplayYear}`;
+  const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  weekdays.forEach(day => {
+    const dayHeader = document.createElement('div');
+    dayHeader.className = 'weekday-header';
+    dayHeader.textContent = day;
+    grid.appendChild(dayHeader);
+  });
+  const firstDay = new Date(currentDisplayYear, currentDisplayMonth, 1).getDay();
+  const daysInMonth = new Date(currentDisplayYear, currentDisplayMonth + 1, 0).getDate();
+  for (let i = 0; i < firstDay; i++) {
+    const emptyDay = document.createElement('div');
+    emptyDay.className = 'calendar-day';
+    grid.appendChild(emptyDay);
+  }
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dayElement = document.createElement('div');
+    dayElement.className = 'calendar-day';
+    dayElement.textContent = day;
+    const dateKey = `${currentDisplayYear}-${currentDisplayMonth}-${day}`;
+    if (workoutHistory[dateKey] === true) {
+      dayElement.classList.add('completed');
+    } else if (workoutHistory[dateKey] === false) {
+      dayElement.classList.add('failed');
     }
+    dayElement.onclick = () => openWorkoutModal(day);
+    grid.appendChild(dayElement);
+  }
 }
-
+function previousMonth() {
+  if (currentDisplayMonth === 0) {
+    currentDisplayMonth = 11;
+    currentDisplayYear--;
+  } else {
+    currentDisplayMonth--;
+  }
+  generateCalendar();
+}
+function nextMonth() {
+  if (currentDisplayMonth === 11) {
+    currentDisplayMonth = 0;
+    currentDisplayYear++;
+  } else {
+    currentDisplayMonth++;
+  }
+  generateCalendar();
+}
 function celebrateWorkout() {
-    confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 }
-    });
+  confetti({
+    particleCount: 100,
+    spread: 70,
+    origin: {
+      y: 0.6
+    }
+  });
 }
-
 function mockUser() {
-    const mockMessages = [
-        "Sério? Mais um dia de sofá? 🤦‍♀️",
-        "A Netflix não vai te deixar em forma! 📺🙄",
-        "A academia tá perguntando de você... 😤",
-        "Cadê os ganhos de hoje? 💪😢",
-        "Os pesos estão sentindo sua falta! 🏋️‍♀️😭",
-        "Você acha que músculos crescem assistindo séries? 🤔🍿",
-        "Mais um treino perdido... assim fica difícil! 🫠",
-        "O personal tá chorando sua ausência. 🥹",
-        "Falta só hoje ou já virou férias permanentes? 🏖️😂",
-        "Enquanto você falta, os outros estão ficando mais fortes. 😏",
-        "Tá treinando o quê? Paciência no sofá? 🛋️🙃",
-        "Esse abdômen trincado não vai se fazer sozinho, viu? 🤷‍♀️",
-        "A preguiça tá vencendo a luta hoje? 🥱🏆",
-        "Você sabe que o treino não vai se fazer sozinho, né? 🙄",
-        "Se faltar mais um dia, vai ter que começar do zero! 🚨",
-        "Acho que sua matrícula na academia tá em risco... 😬",
-        "Cadê a disciplina que você prometeu no Ano Novo? 🗓️🤔",
-        "Tá esperando o milagre da proteína sem treino? 🥤🙃",
-        "Nem um agachamentozinho hoje? 😅",
-        "Enquanto você dorme, o shape dos sonhos vai embora... 😴💭",
-        "Desse jeito, só no próximo verão! ☀️😂",
-        "Se faltar amanhã, já vou chamar de ex-academia! 🫡",
-        "Os aparelhos estão empoeirando sem você... 🏋️‍♀️🫧",
-        "Você não tá cansada de ser sedentária por um dia? 😂",
-        "Vem treinar antes que vire lenda urbana! 👻🏋️‍♀️",
-    ];
-    
-    alert(mockMessages[Math.floor(Math.random() * mockMessages.length)]);
+  const mockMessages = ["Come on, you can do better! 🤦‍♂️", "Seriously? Netflix again? 🙄", "The gym misses you! 😤", "No gains today... 😢", "Your muscles are crying! 😭"];
+  alert(mockMessages[Math.floor(Math.random() * mockMessages.length)]);
 }
-
-// Initialize calendar and user data when page loads
+function handleWorkoutResponse(completed) {
+  const modal = document.getElementById('workout-modal');
+  modal.style.display = 'none';
+  const dateKey = `${currentDisplayYear}-${currentDisplayMonth}-${selectedDate}`;
+  workoutHistory[dateKey] = completed;
+  saveUserData();
+  if (completed) {
+    celebrateWorkout();
+    workoutChecklist.forEach(item => item.checked = false);
+    saveChecklist();
+    renderChecklist();
+  } else {
+    mockUser();
+  }
+  generateCalendar();
+}
+function addNegativeItem() {
+  negativeChecklist.push({
+    text: "New negative item",
+    checked: false
+  });
+  saveChecklist();
+  renderNegativeChecklist();
+}
+function renderNegativeChecklist() {
+  const container = document.getElementById('negative-checklist-items');
+  container.innerHTML = '';
+  negativeChecklist.forEach((item, index) => {
+    const div = document.createElement('div');
+    div.className = 'checklist-item';
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = item.checked;
+    checkbox.onchange = () => {
+      negativeChecklist[index].checked = checkbox.checked;
+      saveChecklist();
+      updateWorkoutStatus();
+    };
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = item.text;
+    input.onchange = () => {
+      negativeChecklist[index].text = input.value;
+      saveChecklist();
+    };
+    const timerControls = document.createElement('div');
+    timerControls.className = 'timer-controls';
+    const timerDisplay = document.createElement('div');
+    timerDisplay.className = 'timer-display';
+    timerDisplay.id = `timer-${index}`;
+    timerDisplay.textContent = '00:30:00';
+    const selectContainer = document.createElement('div');
+    selectContainer.className = 'timer-select-container';
+    const hoursSelect = document.createElement('select');
+    hoursSelect.className = 'timer-select';
+    hoursSelect.id = `hours-${index}`;
+    for (let i = 0; i <= 12; i++) {
+      const option = document.createElement('option');
+      option.value = i;
+      option.text = `${i}h`;
+      hoursSelect.appendChild(option);
+    }
+    const separator = document.createElement('span');
+    separator.className = 'timer-separator';
+    separator.textContent = ':';
+    const minutesSelect = document.createElement('select');
+    minutesSelect.className = 'timer-select';
+    minutesSelect.id = `minutes-${index}`;
+    for (let i = 0; i <= 55; i += 5) {
+      const option = document.createElement('option');
+      option.value = i;
+      option.text = `${i}m`;
+      if (i === 30) option.selected = true;
+      minutesSelect.appendChild(option);
+    }
+    selectContainer.appendChild(hoursSelect);
+    selectContainer.appendChild(separator);
+    selectContainer.appendChild(minutesSelect);
+    timerControls.appendChild(timerDisplay);
+    timerControls.appendChild(selectContainer);
+    const startButton = document.createElement('button');
+    startButton.className = 'timer-button';
+    startButton.id = `start-${index}`;
+    startButton.textContent = '▶';
+    startButton.onclick = () => startTimer(index);
+    const pauseButton = document.createElement('button');
+    pauseButton.className = 'timer-button';
+    pauseButton.id = `pause-${index}`;
+    pauseButton.textContent = '⏸';
+    pauseButton.onclick = () => pauseTimer(index);
+    pauseButton.disabled = true;
+    const resetButton = document.createElement('button');
+    resetButton.className = 'timer-button';
+    resetButton.id = `reset-${index}`;
+    resetButton.textContent = '⟳';
+    resetButton.onclick = () => resetTimer(index);
+    resetButton.disabled = true;
+    timerControls.appendChild(startButton);
+    timerControls.appendChild(pauseButton);
+    timerControls.appendChild(resetButton);
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'delete-item';
+    deleteBtn.textContent = '×';
+    deleteBtn.onclick = () => {
+      negativeChecklist.splice(index, 1);
+      saveChecklist();
+      renderNegativeChecklist();
+      updateWorkoutStatus();
+    };
+    div.appendChild(checkbox);
+    div.appendChild(input);
+    div.appendChild(timerControls);
+    div.appendChild(deleteBtn);
+    container.appendChild(div);
+  });
+}
 window.onload = () => {
-    getUsernameFromURL();
-    generateCalendar();
-};
-</script>
+  getUsernameFromURL();
+  generateCalendar();
+};</script>
 
 </body>
 </html>
