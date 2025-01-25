@@ -616,7 +616,7 @@ function updateWorkoutStatus() {
   const completedNegatives = negativeChecklist.filter(item => item.checked).length;
   const totalNegatives = negativeChecklist.length;
   const negativeRate = totalNegatives > 0 ? completedNegatives / totalNegatives : 0;
-  if (completionRate >= 0.8 && negativeRate < 0.2) {
+  if (completionRate >= 0.6 && negativeRate < 0.4) {
     workoutHistory[dateKey] = true;
     celebrateWorkout();
   } else {
