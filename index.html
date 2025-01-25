@@ -1,348 +1,345 @@
 <html><head><base href="https://example.com/">
-<style>
-.calendar {
-    position: fixed;
-    width: 400px;
-    left: 50%;
-    transform: translateX(-50%);
-    top: 50px;
-    font-family: Arial, sans-serif;
-    box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    background: white;
-    border-radius: 10px;
-    padding: 20px;
-}
-
-.calendar-header {
+  <style>
+  .calendar {
+      position: fixed;
+      width: 400px;
+      left: 50%;
+      transform: translateX(-50%);
+      top: 50px;
+      font-family: Arial, sans-serif;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      background: white;
+      border-radius: 10px;
+      padding: 20px;
+  }
+  
+  .calendar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+  }
+  
+  .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 5px;
+  }
+  
+  .calendar-day {
+      padding: 10px;
+      text-align: center;
+      cursor: pointer;
+      border: 1px solid #eee;
+      border-radius: 5px;
+      transition: background-color 0.3s;
+  }
+  
+  .calendar-day:hover {
+      background-color: #f0f0f0;
+  }
+  
+  .weekday-header {
+      font-weight: bold;
+      text-align: center;
+      padding: 10px;
+      background: #f5f5f5;
+      border-radius: 5px;
+  }
+  
+  .fireworks {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 9999;
+  }
+  
+  .modal {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.2);
+      z-index: 1000;
+  }
+  
+  .modal-content {
+      text-align: center;
+  }
+  
+  .modal-buttons button {
+      margin: 10px;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+  }
+  
+  .completed {
+      background-color: #90EE90 !important;
+  }
+  
+  .failed {
+      background-color: #FFB6C1 !important;
+  }
+  
+  .nav-button {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+  }
+  
+  .nav-button:hover {
+      background: #0056b3;
+  }
+  
+  .user-info {
+      text-align: center;
+      margin-bottom: 20px;
+  }
+  
+  .workout-checklist {
+      width: 800px;
+      left: 50%;
+      transform: translateX(-50%); 
+      margin-top: 500px;
+      margin-bottom: 50px;
+      background: white;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      position: relative;
+  }
+  
+  .checklist-item {
+      display: flex;
+      align-items: center;
+      margin: 10px 0;
+      padding: 10px;
+      background: #f5f5f5;
+      border-radius: 5px;
+  }
+  
+  .checklist-item input[type="checkbox"] {
+      margin-right: 10px;
+  }
+  
+  .checklist-item input[type="text"] {
+      flex-grow: 1;
+      padding: 5px;
+      border: 1px solid #ddd;
+      border-radius: 3px;
+  }
+  
+  .timer-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-left: 10px;
+  }
+  
+  .timer-display {
+      font-family: monospace;
+      min-width: 100px;
+      padding: 5px;
+      background: #f0f0f0;
+      border-radius: 3px;
+      text-align: center;
+  }
+  
+  .timer-button {
+      padding: 5px 10px;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      background: #007bff;
+      color: white;
+  }
+  
+  .timer-button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+  }
+  
+  .timer-select-container {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
-}
-
-.calendar-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
     gap: 5px;
-}
-
-.calendar-day {
-    padding: 10px;
-    text-align: center;
-    cursor: pointer;
-    border: 1px solid #eee;
-    border-radius: 5px;
-    transition: background-color 0.3s;
-}
-
-.calendar-day:hover {
-    background-color: #f0f0f0;
-}
-
-.weekday-header {
+    background: #f0f0f0;
+    padding: 5px;
+    border-radius: 3px;
+  }
+  
+  .timer-separator {
     font-weight: bold;
-    text-align: center;
-    padding: 10px;
-    background: #f5f5f5;
-    border-radius: 5px;
-}
-
-.fireworks {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    z-index: 9999;
-}
-
-.modal {
-    display: none;
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: white;
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 0 20px rgba(0,0,0,0.2);
-    z-index: 1000;
-}
-
-.modal-content {
-    text-align: center;
-}
-
-.modal-buttons button {
-    margin: 10px;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-}
-
-.completed {
-    background-color: #90EE90 !important;
-}
-
-.failed {
-    background-color: #FFB6C1 !important;
-}
-
-.nav-button {
-    background: #007bff;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.3s;
-}
-
-.nav-button:hover {
-    background: #0056b3;
-}
-
-.user-info {
-    text-align: center;
-    margin-bottom: 20px;
-}
-
-.workout-checklist {
+    color: #666;
+  }
+  
+  .add-item {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      padding: 5px 10px;
+      margin-top: 10px;
+      cursor: pointer;
+      width: 50%;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+  }
+  
+  .delete-item {
+      padding: 5px 10px;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      background: #ff4444;
+      color: white;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-left: 10px;
+  }
+  
+  .multiplier-input {
+      display: none;
+  }
+  
+  .negative-checklist {
     width: 800px;
     left: 50%;
-    transform: translateX(-50%); 
-    margin-top: 500px;
-    margin-bottom: 50px;
+    transform: translateX(-50%);
+    margin-top: 20px;
     background: white;
     border-radius: 10px;
     padding: 20px;
     box-shadow: 0 0 10px rgba(0,0,0,0.1);
     position: relative;
-}
-
-.checklist-item {
+    background: #fff3f3;
+    top: unset;
+  }
+  
+  .negative-checklist .checklist-item {
+    background: #ffe6e6;
+  }
+  
+  .history-controls {
     display: flex;
-    align-items: center;
-    margin: 10px 0;
-    padding: 10px;
-    background: #f5f5f5;
-    border-radius: 5px;
-}
-
-.checklist-item input[type="checkbox"] {
-    margin-right: 10px;
-}
-
-.checklist-item input[type="text"] {
-    flex-grow: 1;
-    padding: 5px;
-    border: 1px solid #ddd;
-    border-radius: 3px;
-}
-
-.timer-controls {
-    display: flex;
-    align-items: center;
+    justify-content: center;
     gap: 10px;
-    margin-left: 10px;
-}
-
-.timer-display {
-    font-family: monospace;
-    min-width: 100px;
-    padding: 5px;
-    background: #f0f0f0;
-    border-radius: 3px;
-    text-align: center;
-}
-
-.timer-button {
-    padding: 5px 10px;
-    border: none;
-    border-radius: 3px;
-    cursor: pointer;
+    margin: 20px 0;
+  }
+  
+  .history-controls button {
     background: #007bff;
     color: white;
-}
-
-.timer-button:disabled {
-    background: #ccc;
-    cursor: not-allowed;
-}
-
-.timer-select-container {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  background: #f0f0f0;
-  padding: 5px;
-  border-radius: 3px;
-}
-
-.timer-separator {
-  font-weight: bold;
-  color: #666;
-}
-
-.add-item {
-    background: #4CAF50;
-    color: white;
     border: none;
+    padding: 10px 20px;
     border-radius: 5px;
-    padding: 5px 10px;
-    margin-top: 10px;
     cursor: pointer;
-    width: 50%;
-    display: block;
-    margin-left: auto;
-    margin-right: auto;
-}
-
-.delete-item {
-    padding: 5px 10px;
-    border: none;
-    border-radius: 3px;
-    cursor: pointer;
-    background: #ff4444;
-    color: white;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-left: 10px;
-}
-
-.multiplier-input {
-    display: none;
-}
-
-.negative-checklist {
-  width: 800px;
-  left: 50%;
-  transform: translateX(-50%);
-  margin-top: 20px;
-  background: white;
-  border-radius: 10px;
-  padding: 20px;
-  box-shadow: 0 0 10px rgba(0,0,0,0.1);
-  position: relative;
-  background: #fff3f3;
-  top: unset;
-}
-
-.negative-checklist .checklist-item {
-  background: #ffe6e6;
-}
-
-.history-controls {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  margin: 20px 0;
-}
-
-.history-controls button {
-  background: #007bff;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-.history-controls button:hover {
-  background: #0056b3;
-}
-
-.list-controls {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  margin: 20px 0;
-}
-
-.list-controls button {
-  background: #007bff;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-.list-controls button:hover {
-  background: #0056b3;
-}
-
-body {
-    min-height: 150vh;
-    overflow-y: scroll;
-}
-</style>
-
-</head>
-<body>
-
-<div class="user-info">
-</div>
-
-<div class="calendar">
-    <div class="calendar-header">
-        <button class="nav-button" onclick="previousMonth()">&lt;</button>
-        <h2 id="current-month"></h2>
-        <button class="nav-button" onclick="nextMonth()">&gt;</button>
-    </div>
-    <div class="calendar-grid" id="calendar-grid">
-    </div>
-</div>
-
-<div class="workout-checklist">
-    <h3>Positive Activities</h3>
-    <div id="checklist-items"></div>
-    <button class="add-item" onclick="addChecklistItem()">Add New Item</button>
-</div>
-
-<div class="negative-checklist workout-checklist">
-    <h3>Negative Activities</h3>
-    <div id="negative-checklist-items"></div>
-    <button class="add-item" onclick="addNegativeItem()">Add New Negative Item</button>
-</div>
-
-<div class="modal" id="workout-modal">
-    <div class="modal-content">
-        <h3>Did you complete all workout items today? </h3>
-        <div class="modal-buttons">
-            <button onclick="handleWorkoutResponse(true)">Yes! </button>
-            <button onclick="handleWorkoutResponse(false)">No... </button>
-        </div>
-    </div>
-</div>
-
-<div class="list-controls">
-  <button onclick="exportLists()">Export Lists</button>
-  <input type="file" id="importListsInput" accept=".json" style="display:none" onchange="importLists(event)">
-  <button onclick="document.getElementById(&apos;importListsInput&apos;).click()">Import Lists</button>
-</div>
-
-<div class="history-controls">
-  <button onclick="exportHistory()">Export History</button>
-  <input type="file" id="importHistoryInput" accept=".txt" style="display:none" onchange="importHistory(event)">
-  <button onclick="document.getElementById(&apos;importHistoryInput&apos;).click()">Import History</button>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.4.0/dist/confetti.browser.min.js"></script>
-<script>let selectedDate = null;
+    transition: background-color 0.3s;
+  }
+  
+  .history-controls button:hover {
+    background: #0056b3;
+  }
+  
+  body {
+      min-height: 150vh;
+      overflow-y: scroll;
+  }
+  </style>
+  
+  </head>
+  <body>
+  
+  <div class="user-info">
+  </div>
+  
+  <div class="calendar">
+      <div class="calendar-header">
+          <button class="nav-button" onclick="previousMonth()">&lt;</button>
+          <h2 id="current-month"></h2>
+          <button class="nav-button" onclick="nextMonth()">&gt;</button>
+      </div>
+      <div class="calendar-grid" id="calendar-grid">
+      </div>
+  </div>
+  
+  <div class="workout-checklist">
+      <h3>Positive Activities</h3>
+      <div id="checklist-items"></div>
+      <button class="add-item" onclick="addChecklistItem()">Add New Item</button>
+  </div>
+  
+  <div class="negative-checklist workout-checklist">
+      <h3>Negative Activities</h3>
+      <div id="negative-checklist-items"></div>
+      <button class="add-item" onclick="addNegativeItem()">Add New Negative Item</button>
+  </div>
+  
+  <div class="modal" id="workout-modal">
+      <div class="modal-content">
+          <h3>Did you complete all workout items today? </h3>
+          <div class="modal-buttons">
+              <button onclick="handleWorkoutResponse(true)">Yes! </button>
+              <button onclick="handleWorkoutResponse(false)">No... </button>
+          </div>
+      </div>
+  </div>
+  
+  <div class="history-controls">
+    <button onclick="exportHistory()">Export History</button>
+    <input type="file" id="importHistoryInput" accept=".json" style="display:none" onchange="importHistory(event)">
+    <button onclick="document.getElementById(&apos;importHistoryInput&apos;).click()">Import History</button>
+  </div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.4.0/dist/confetti.browser.min.js"></script>
+  <script>let selectedDate = null;
 let currentDisplayMonth = new Date().getMonth();
 let currentDisplayYear = new Date().getFullYear();
 let workoutHistory = {};
 let username = '';
-let workoutChecklist = [];
+let Patterns = {
+  "positiveChecklist": [{
+    "text": "Warm up (10 mins)",
+    "checked": false
+  }, {
+    "text": "Main workout",
+    "checked": false
+  }, {
+    "text": "Cool down stretches",
+    "checked": false
+  }],
+  "negativeChecklist": [{
+    "text": "Stayed up too late",
+    "checked": false
+  }, {
+    "text": "Skipped breakfast",
+    "checked": false
+  }, {
+    "text": "Unhealthy snacking",
+    "checked": false
+  }]
+};
+let defaultWorkoutChecklist = Patterns.positiveChecklist.slice();
+let defaultNegativeChecklist = Patterns.negativeChecklist.slice();
+let workoutChecklist = defaultWorkoutChecklist.slice();
 let dailyWorkoutData = {};
 let timerIntervals = {};
-let negativeChecklist = [];
+let negativeChecklist = defaultNegativeChecklist.slice();
 let workoutTimerStates = {};
 let negativeTimerStates = {};
 let completeHistory = {
@@ -351,6 +348,7 @@ let completeHistory = {
   negativeChecklist: {},
   dailyWorkoutData: {}
 };
+let activityPatterns = {};
 function formatTime(seconds) {
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor(seconds % 3600 / 60);
@@ -537,6 +535,10 @@ function loadUserData() {
   if (savedCompleteHistory) {
     completeHistory = JSON.parse(savedCompleteHistory);
   }
+  if (completeHistory.defaultWorkoutChecklist) {
+    defaultWorkoutChecklist = completeHistory.defaultWorkoutChecklist;
+    defaultNegativeChecklist = completeHistory.defaultNegativeChecklist;
+  }
   const savedData = localStorage.getItem(`workout-data-${username}`);
   const savedChecklist = localStorage.getItem(`workout-checklist-${username}`);
   if (savedData) {
@@ -545,45 +547,41 @@ function loadUserData() {
   if (savedChecklist) {
     workoutChecklist = JSON.parse(savedChecklist);
   } else {
-    workoutChecklist = [{
-      text: "Warm up (10 mins)",
-      checked: false
-    }, {
-      text: "Main workout",
-      checked: false
-    }, {
-      text: "Cool down stretches",
-      checked: false
-    }];
+    workoutChecklist = JSON.parse(JSON.stringify(defaultWorkoutChecklist));
   }
   renderChecklist();
   const savedNegativeChecklist = localStorage.getItem(`negative-checklist-${username}`);
   if (savedNegativeChecklist) {
     negativeChecklist = JSON.parse(savedNegativeChecklist);
   } else {
-    negativeChecklist = [{
-      text: "Stayed up too late",
-      checked: false
-    }, {
-      text: "Skipped breakfast",
-      checked: false
-    }, {
-      text: "Unhealthy snacking",
-      checked: false
-    }];
+    negativeChecklist = JSON.parse(JSON.stringify(defaultNegativeChecklist));
   }
   renderNegativeChecklist();
   generateCalendar();
 }
 function saveUserData() {
   const dateKey = `${currentDisplayYear}-${currentDisplayMonth}-${selectedDate}`;
-  if (!completeHistory.workoutHistory) completeHistory.workoutHistory = {};
-  if (!completeHistory.workoutChecklist) completeHistory.workoutChecklist = {};
-  if (!completeHistory.negativeChecklist) completeHistory.negativeChecklist = {};
-  completeHistory.workoutHistory[dateKey] = workoutHistory[dateKey];
-  completeHistory.workoutChecklist[dateKey] = workoutChecklist;
-  completeHistory.negativeChecklist[dateKey] = negativeChecklist;
-  localStorage.setItem(`complete-history-${username}`, JSON.stringify(completeHistory));
+  const hasWorkoutHistoryChanges = JSON.stringify(completeHistory.workoutHistory && completeHistory.workoutHistory[dateKey]) !== JSON.stringify(workoutHistory[dateKey]);
+  const hasWorkoutChecklistChanges = JSON.stringify(completeHistory.workoutChecklist && completeHistory.workoutChecklist[dateKey]) !== JSON.stringify(workoutChecklist);
+  const hasNegativeChecklistChanges = JSON.stringify(completeHistory.negativeChecklist && completeHistory.negativeChecklist[dateKey]) !== JSON.stringify(negativeChecklist);
+  if (hasWorkoutHistoryChanges || hasWorkoutChecklistChanges || hasNegativeChecklistChanges) {
+    if (!completeHistory.workoutHistory) completeHistory.workoutHistory = {};
+    if (!completeHistory.workoutChecklist) completeHistory.workoutChecklist = {};
+    if (!completeHistory.negativeChecklist) completeHistory.negativeChecklist = {};
+    if (hasWorkoutHistoryChanges) {
+      completeHistory.workoutHistory[dateKey] = workoutHistory[dateKey];
+    }
+    if (hasWorkoutChecklistChanges) {
+      completeHistory.workoutChecklist[dateKey] = workoutChecklist;
+    }
+    if (hasNegativeChecklistChanges) {
+      completeHistory.negativeChecklist[dateKey] = negativeChecklist;
+    }
+    Patterns.positiveChecklist = defaultWorkoutChecklist;
+    Patterns.negativeChecklist = defaultNegativeChecklist;
+    localStorage.setItem(`complete-history-${username}`, JSON.stringify(completeHistory));
+    localStorage.setItem(`Patterns-${username}`, JSON.stringify(Patterns));
+  }
   localStorage.setItem(`workout-data-${username}`, JSON.stringify(workoutHistory));
   localStorage.setItem(`daily-workout-data-${username}`, JSON.stringify(dailyWorkoutData));
 }
@@ -591,31 +589,13 @@ function openWorkoutModal(day) {
   selectedDate = day;
   const dateKey = `${currentDisplayYear}-${currentDisplayMonth}-${selectedDate}`;
   if (!completeHistory.workoutChecklist[dateKey]) {
-    const previousDateKey = findPreviousDateWithHistory(dateKey);
-    if (previousDateKey) {
-      workoutChecklist = JSON.parse(JSON.stringify(completeHistory.workoutChecklist[previousDateKey]));
-      negativeChecklist = JSON.parse(JSON.stringify(completeHistory.negativeChecklist[previousDateKey]));
+    const lastDateWithHistory = findPreviousDateWithHistory(dateKey);
+    if (lastDateWithHistory) {
+      workoutChecklist = JSON.parse(JSON.stringify(completeHistory.workoutChecklist[lastDateWithHistory]));
+      negativeChecklist = JSON.parse(JSON.stringify(completeHistory.negativeChecklist[lastDateWithHistory]));
     } else {
-      workoutChecklist = [{
-        text: "Warm up (10 mins)",
-        checked: false
-      }, {
-        text: "Main workout",
-        checked: false
-      }, {
-        text: "Cool down stretches",
-        checked: false
-      }];
-      negativeChecklist = [{
-        text: "Stayed up too late",
-        checked: false
-      }, {
-        text: "Skipped breakfast",
-        checked: false
-      }, {
-        text: "Unhealthy snacking",
-        checked: false
-      }];
+      workoutChecklist = JSON.parse(JSON.stringify(defaultWorkoutChecklist));
+      negativeChecklist = JSON.parse(JSON.stringify(defaultNegativeChecklist));
     }
   } else {
     workoutChecklist = JSON.parse(JSON.stringify(completeHistory.workoutChecklist[dateKey]));
@@ -624,7 +604,6 @@ function openWorkoutModal(day) {
   saveChecklist();
   renderChecklist();
   renderNegativeChecklist();
-  workoutHistory[dateKey] = false;
   saveUserData();
   generateCalendar();
 }
@@ -857,7 +836,10 @@ function renderNegativeChecklist() {
   });
 }
 function exportHistory() {
-  const historyBlob = new Blob([JSON.stringify(completeHistory, null, 2)], {
+  const historyBlob = new Blob([JSON.stringify({
+    completeHistory: completeHistory,
+    Patterns: Patterns
+  }, null, 2)], {
     type: 'application/json'
   });
   const a = document.createElement('a');
@@ -871,12 +853,18 @@ function importHistory(event) {
     const reader = new FileReader();
     reader.onload = function (e) {
       try {
-        const importedHistory = JSON.parse(e.target.result);
+        const importedData = JSON.parse(e.target.result);
         completeHistory = {
           ...completeHistory,
-          ...importedHistory
+          ...importedData.completeHistory
         };
+        if (importedData.Patterns) {
+          Patterns = importedData.Patterns;
+          defaultWorkoutChecklist = Patterns.positiveChecklist.slice();
+          defaultNegativeChecklist = Patterns.negativeChecklist.slice();
+        }
         localStorage.setItem(`complete-history-${username}`, JSON.stringify(completeHistory));
+        localStorage.setItem(`Patterns-${username}`, JSON.stringify(Patterns));
         generateCalendar();
         renderChecklist();
         renderNegativeChecklist();
@@ -914,49 +902,27 @@ function findPreviousDateWithHistory(currentDateKey) {
   }
   return null;
 }
-function exportLists() {
-  const listsToExport = {
-    workoutChecklist: workoutChecklist,
-    negativeChecklist: negativeChecklist
-  };
-  const listsBlob = new Blob([JSON.stringify(listsToExport, null, 2)], {
-    type: 'application/json'
+function findMostRecentPattern() {
+  const dateKeys = Object.keys(completeHistory.workoutChecklist).sort((a, b) => {
+    const [yearA, monthA, dayA] = a.split('-').map(Number);
+    const [yearB, monthB, dayB] = b.split('-').map(Number);
+    const dateA = new Date(yearA, monthA, dayA);
+    const dateB = new Date(yearB, monthB, dayB);
+    return dateB - dateA;
   });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(listsBlob);
-  a.download = `workout_lists_${new Date().toISOString().split('T')[0]}.json`;
-  a.click();
-}
-function importLists(event) {
-  const file = event.target.files[0];
-  if (file) {
-    const reader = new FileReader();
-    reader.onload = function (e) {
-      try {
-        const importedLists = JSON.parse(e.target.result);
-        if (importedLists.workoutChecklist) {
-          workoutChecklist = importedLists.workoutChecklist;
-          renderChecklist();
-          localStorage.setItem(`workout-checklist-${username}`, JSON.stringify(workoutChecklist));
-        }
-        if (importedLists.negativeChecklist) {
-          negativeChecklist = importedLists.negativeChecklist;
-          renderNegativeChecklist();
-          localStorage.setItem(`negative-checklist-${username}`, JSON.stringify(negativeChecklist));
-        }
-        alert('Lists imported successfully!');
-      } catch (error) {
-        alert('Error importing lists: ' + error.message);
-      }
-    };
-    reader.readAsText(file);
-  }
+  return dateKeys[0];
 }
 window.onload = () => {
   getUsernameFromURL();
   generateCalendar();
+  const savedPatterns = localStorage.getItem(`Patterns-${username}`);
+  if (savedPatterns) {
+    Patterns = JSON.parse(savedPatterns);
+    defaultWorkoutChecklist = Patterns.positiveChecklist.slice();
+    defaultNegativeChecklist = Patterns.negativeChecklist.slice();
+  }
 };</script>
-
-</body>
-
-</html>
+  
+  </body>
+  
+  </html>
